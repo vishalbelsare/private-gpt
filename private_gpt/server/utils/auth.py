@@ -60,10 +60,14 @@ else:
 
     # Method to be used as a dependency to check if the request is authenticated.
     def authenticated(
-        _simple_authentication: Annotated[bool, Depends(_simple_authentication)]
+        _simple_authentication: Annotated[bool, Depends(_simple_authentication)],
     ) -> bool:
         """Check if the request is authenticated."""
-        assert settings().server.auth.enabled
+        if not settings().server.auth.enabled:
+            # Auth could be disabled at runtime after the module was imported.
+            # Never use `assert` here: it is stripped under `python -O` and
+            # would raise AssertionError (500) instead of a proper 401.
+            raise NOT_AUTHENTICATED
         if not _simple_authentication:
             raise NOT_AUTHENTICATED
         return True
